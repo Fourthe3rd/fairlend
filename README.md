@@ -2,24 +2,58 @@
 
 > **Undercollateralized lending powered by on-chain reputation**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Built with FairScale](https://img.shields.io/badge/Built%20with-FairScale-blue)](https://fairscale.xyz)
-[![Live on Base](https://img.shields.io/badge/Live-Base%20Mainnet-0052FF)](https://base.org)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-green)](https://fairlend-eight.vercel.app/)
+[![Contract](https://img.shields.io/badge/Contract-BaseScan-blue)](https://basescan.org/address/0x8A082F5ef985671C2DA430fC71b6Cee1e9Bf2D34)
+[![Built with FairScale](https://img.shields.io/badge/Built%20with-FairScale-purple)](https://fairscale.xyz)
 
 ## 🎯 What is FairLend?
 
 FairLend lets you borrow crypto with **less collateral** based on your **FairScore** — your on-chain reputation. No banks, no KYC, just your wallet history.
 
-| FairScore | Collateral Required | Max Loan | Interest Rate |
-|-----------|---------------------|----------|---------------|
-| 🟣 **80+** (Platinum) | 100% | $50,000 | 8% APY |
-| 🟡 **60-79** (Gold) | 120% | $25,000 | 10% APY |
-| ⚪ **40-59** (Silver) | 135% | $10,000 | 12% APY |
-| 🟠 **20-39** (Bronze) | 150% | $5,000 | 14% APY |
+## 🔗 Live Demo
 
-**On Aave, everyone pays 150%+ collateral. On FairLend, your reputation earns you better terms.**
+| Resource | Link |
+|----------|------|
+| **Live App** | https://fairlend-eight.vercel.app |
+| **Smart Contract** | [View on BaseScan](https://basescan.org/address/0x8A082F5ef985671C2DA430fC71b6Cee1e9Bf2D34) |
+| **API Docs** | [API.md](docs/API.md) |
+| **User Guide** | [USER_GUIDE.md](docs/USER_GUIDE.md) |
 
----
+## 📊 FairScore Tiers
+
+| Tier | Score | Collateral | Max Loan | Interest |
+|------|-------|------------|----------|----------|
+| 🟣 Platinum | 80+ | 100% | $50,000 | 8% APY |
+| 🟡 Gold | 60-79 | 120% | $25,000 | 10% APY |
+| ⚪ Silver | 40-59 | 135% | $10,000 | 12% APY |
+| 🟠 Bronze | 20-39 | 150% | $5,000 | 14% APY |
+
+## 🏗️ Architecture
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Solana Wallet  │────▶│   FairScale     │────▶│    FairLend     │
+│  (reputation)   │     │   API (scores)  │     │   on Base       │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+**How it works:**
+1. FairScale analyzes your Solana wallet history
+2. You get a FairScore (0-100)
+3. FairLend uses that score to set your loan terms on Base
+
+## 🔗 FairScore Integration
+
+FairLend uses FairScore as a **core primitive**, not a decorative add-on:
+
+| Integration Point | Description |
+|-------------------|-------------|
+| Credit Limits | FairScore determines max loan amount |
+| Collateral Ratio | Higher scores = lower collateral required |
+| Interest Rates | Better scores = cheaper borrowing |
+| Vouch Eligibility | Only 40+ FairScore users can vouch |
+| Outcome Reporting | Repayments/defaults reported to FairScale |
+
+See [FAIRSCORE_INTEGRATION.md](docs/FAIRSCORE_INTEGRATION.md) for technical details.
 
 ## 🚀 Quick Start
 
@@ -27,281 +61,123 @@ FairLend lets you borrow crypto with **less collateral** based on your **FairSco
 
 - Node.js 18+
 - Git
-- A wallet with testnet ETH (for Base Sepolia)
+- MetaMask wallet
 
-### Clone & Install
-
+### Local Development
 ```bash
-git clone https://github.com/fairscale/fairlend.git
+# Clone the repo
+git clone https://github.com/Fourthe3rd/fairlend.git
 cd fairlend
 
-# Install all dependencies
-cd backend && npm install && cd ..
-cd frontend && npm install && cd ..
-cd contracts && forge install && cd ..
+# Start Backend
+cd backend
+npm install
+cp .env.example .env
+# Edit .env with your API keys
+npm run dev
+
+# Start Frontend (new terminal)
+cd frontend
+npm install
+cp .env.example .env.local
+# Edit .env.local with your keys
+npm run dev
 ```
 
-### Configure Environment
+Open http://localhost:3000
 
-```bash
-# Backend
-cp backend/.env.example backend/.env
-# Edit backend/.env with your FairScale API key
+### Environment Variables
 
-# Frontend
-cp frontend/.env.example frontend/.env
-# Edit frontend/.env with your WalletConnect project ID
+**Backend (.env):**
+```
+PORT=3001
+FAIRSCALE_API_KEY=your_api_key
+ATTESTATION_SIGNER_KEY=0xyour_private_key
+CHAIN_ID=8453
+CONTRACT_ADDRESS=0x8A082F5ef985671C2DA430fC71b6Cee1e9Bf2D34
 ```
 
-### Run Locally
-
-```bash
-# Terminal 1: Start backend
-cd backend && npm run dev
-
-# Terminal 2: Start frontend
-cd frontend && npm run dev
-
-# Visit http://localhost:3000
+**Frontend (.env.local):**
 ```
-
----
-
-## 🏗️ Architecture
-
+NEXT_PUBLIC_WALLET_CONNECT_ID=your_project_id
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x8A082F5ef985671C2DA430fC71b6Cee1e9Bf2D34
+NEXT_PUBLIC_CHAIN_ID=8453
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         FAIRLEND STACK                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐   │
-│  │   Frontend   │────▶│   Backend    │────▶│  FairScale   │   │
-│  │   Next.js    │     │   Express    │     │     API      │   │
-│  └──────────────┘     └──────────────┘     └──────────────┘   │
-│         │                    │                                  │
-│         │                    │ Signed Attestation               │
-│         ▼                    ▼                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    Smart Contracts                        │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │  │
-│  │  │ FairLendCore│  │  Tranched   │  │  Insurance  │      │  │
-│  │  │   (Loans)   │  │   Pools     │  │    Fund     │      │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘      │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                  │
-│                              ▼                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    Base Blockchain                        │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🔗 FairScore Integration
-
-FairLend uses FairScore as a **core primitive**, not a decorative add-on. Here's how:
-
-### Integration Points
-
-1. **Credit Limit Calculation** — FairScore determines max loan amount
-2. **Collateral Ratio** — Higher scores = lower collateral requirements
-3. **Interest Rate** — Better scores = cheaper borrowing
-4. **Vouch Eligibility** — Only 500+ FairScore users can vouch
-5. **Outcome Reporting** — Repayments/defaults are reported back to FairScale
-
-### Signed Attestation Flow
-
-```
-User clicks "Update Credit Limit"
-         │
-         ▼
-Backend fetches FairScore from API
-         │
-         ▼
-Backend calculates terms (maxLoan, collateralRatio, interestRate)
-         │
-         ▼
-Backend signs attestation with private key
-         │
-         ▼
-User submits signed attestation to contract
-         │
-         ▼
-Contract verifies signature and stores credit limit
-         │
-         ▼
-User can now borrow based on their verified FairScore
-```
-
-### Why This Architecture?
-
-- **Gas Efficient** — No on-chain oracle calls during borrow
-- **Secure** — Backend signature prevents spoofing
-- **Fresh Data** — Attestations expire after 24 hours
-- **Verifiable** — Anyone can check the signer address
-
----
-
-## 🛡️ Risk Management
-
-FairLend has a **four-layer loss waterfall** to protect lenders:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      LOSS WATERFALL                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Layer 1: BORROWER COLLATERAL (100-175%)                       │
-│  └── First loss absorbed by borrower's posted collateral       │
-│                                                                 │
-│  Layer 2: VOUCHER STAKES                                        │
-│  └── Community members who vouched get slashed                 │
-│                                                                 │
-│  Layer 3: INSURANCE FUND (20% of protocol revenue)             │
-│  └── Protocol-level backstop for unexpected losses             │
-│                                                                 │
-│  Layer 4: JUNIOR TRANCHE                                        │
-│  └── High-yield depositors absorb catastrophic losses          │
-│                                                                 │
-│  ═══════════════════════════════════════════════════════════   │
-│  SENIOR TRANCHE: Protected (only touched if all above fail)    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Default Scenario
-
-**Q: What happens if a Platinum user borrows $50k and disappears?**
-
-1. ✅ Seize their $50k collateral (100% for Platinum)
-2. ✅ If market dropped and collateral < debt, slash vouchers
-3. ✅ If still short, use Insurance Fund
-4. ✅ If still short, Junior Tranche absorbs loss
-5. ✅ Report default to FairScale API — user's score nuked to 0
-6. ✅ Wallet permanently blacklisted from FairLend
-
----
 
 ## 📁 Project Structure
-
 ```
 fairlend/
-├── contracts/                 # Solidity smart contracts
-│   ├── src/
-│   │   └── FairLendCore.sol  # Main lending contract
-│   ├── test/                  # Foundry tests
-│   └── script/                # Deployment scripts
-│
-├── backend/                   # Express.js API server
-│   ├── src/
-│   │   └── server.ts         # API + attestation service
-│   ├── package.json
-│   └── .env.example
-│
-├── frontend/                  # Next.js 14 application
-│   ├── src/
-│   │   └── app/              # App router pages
-│   ├── package.json
-│   └── .env.example
-│
-└── docs/                      # Documentation
-    ├── FAIRSCORE_INTEGRATION.md
-    └── DEPLOYMENT.md
+├── backend/           # Express.js API server
+│   └── src/
+│       └── server.ts  # Main API + attestation service
+├── frontend/          # Next.js application
+│   └── src/
+│       └── app/       # App router pages
+├── contracts/         # Solidity smart contracts
+│   └── src/
+│       └── FairLendCore.sol
+└── docs/              # Documentation
+    ├── API.md
+    ├── USER_GUIDE.md
+    └── FAIRSCORE_INTEGRATION.md
 ```
 
----
-
-## 🧪 Testing
-
-### Smart Contracts
-
-```bash
-cd contracts
-forge test -vvv
-```
-
-### Backend
-
-```bash
-cd backend
-npm test
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm run lint
-npm run build
-```
-
----
-
-## 🚢 Deployment
-
-### Testnet (Base Sepolia)
-
-```bash
-cd contracts
-forge script script/Deploy.s.sol --rpc-url base-sepolia --broadcast
-```
-
-### Mainnet (Base)
-
-```bash
-cd contracts
-forge script script/Deploy.s.sol --rpc-url base --broadcast --verify
-```
-
-See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for full deployment guide.
-
----
-
-## 📊 Contract Addresses
+## 🔐 Smart Contracts
 
 | Network | Contract | Address |
 |---------|----------|---------|
-| Base Sepolia | FairLendCore | `0x...` |
-| Base Mainnet | FairLendCore | `0x...` |
+| Base Mainnet | FairLendCore | `0x8A082F5ef985671C2DA430fC71b6Cee1e9Bf2D34` |
+| Base Sepolia | FairLendCore | `0x8A082F5ef985671C2DA430fC71b6Cee1e9Bf2D34` |
 
----
+### Contract Features
 
-## 🤝 Contributing
+- **Signed Attestations** — Gas-efficient credit limit updates
+- **Tranched Pools** — Senior (safe) and Junior (high-yield) lending
+- **Vouching System** — Stake to vouch for borrowers
+- **Insurance Fund** — 20% of revenue for loss protection
+- **Liquidation** — Permissionless with keeper rewards
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing`)
-5. Open a Pull Request
+## 🛡️ Risk Management
 
----
+4-layer loss waterfall protects lenders:
+```
+Layer 1: Borrower Collateral (100-175%)
+    ↓
+Layer 2: Voucher Stakes (slashed on default)
+    ↓
+Layer 3: Insurance Fund (20% of revenue)
+    ↓
+Layer 4: Junior Tranche (absorbs remaining loss)
+```
+
+## 🚢 Deployment
+
+### Deploy Contracts
+```bash
+cd contracts
+forge build
+forge script script/Deploy.s.sol --rpc-url https://mainnet.base.org --broadcast --legacy
+```
+
+### Deploy Backend
+
+Deploy to Railway or Render with root directory set to `backend`.
+
+### Deploy Frontend
+
+Deploy to Vercel with root directory set to `frontend`.
 
 ## 📜 License
 
-MIT License — see [LICENSE](./LICENSE) for details.
-
----
+MIT License — see [LICENSE](LICENSE) for details.
 
 ## 🔗 Links
 
-- **Website**: https://fairlend.xyz
-- **Twitter**: https://twitter.com/FairLendXYZ
-- **Documentation**: https://docs.fairlend.xyz
-- **FairScale**: https://fairscale.xyz
-
----
-
-## 💡 Why FairLend?
-
-> "Right now, FairScore is just a number. FairLend turns FairScore into money."
-
-By assigning a dollar value to reputation — a score of 800 grants $50,000 credit at 100% collateral — we create the first **Cost of Corruption** in DeFi.
-
-If a user ruins their score, they lose access to future capital. This creates the incentive loop that makes on-chain reputation actually matter.
-
-**Betting on FairLend is betting on a mature crypto economy where your history is worth something.**
+- **Live App:** https://fairlend-eight.vercel.app
+- **GitHub:** https://github.com/Fourthe3rd/fairlend
+- **Contract:** https://basescan.org/address/0x8A082F5ef985671C2DA430fC71b6Cee1e9Bf2D34
+- **FairScale:** https://fairscale.xyz
 
 ---
 
