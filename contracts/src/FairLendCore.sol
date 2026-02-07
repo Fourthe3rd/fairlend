@@ -10,13 +10,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @title FairLendCore
  * @notice Undercollateralized lending protocol powered by FairScore reputation
- * @dev Uses signed attestations from FairScale backend for gas-efficient credit limits
- * 
- * Risk Architecture:
- * 1. Borrower Collateral (first loss)
- * 2. Voucher Stakes (second loss) 
- * 3. Insurance Fund (third loss)
- * 4. Junior Tranche (catastrophic loss)
  */
 contract FairLendCore is ReentrancyGuard, Ownable {
     using ECDSA for bytes32;
@@ -25,20 +18,20 @@ contract FairLendCore is ReentrancyGuard, Ownable {
     // ============ Constants ============
     
     uint256 public constant BASIS_POINTS = 10000;
-    uint256 public constant LIQUIDATION_THRESHOLD = 9500; // 95% health factor
-    uint256 public constant KEEPER_REWARD_BPS = 500;      // 5% to liquidators
-    uint256 public constant INSURANCE_FEE_BPS = 2000;     // 20% of interest
-    uint256 public constant VOUCH_REWARD_BPS = 1000;      // 10% of interest to vouchers
+    uint256 public constant LIQUIDATION_THRESHOLD = 9500;
+    uint256 public constant KEEPER_REWARD_BPS = 500;
+    uint256 public constant INSURANCE_FEE_BPS = 2000;
+    uint256 public constant VOUCH_REWARD_BPS = 1000;
     uint256 public constant MIN_LOAN_DURATION = 1 days;
     uint256 public constant MAX_LOAN_DURATION = 90 days;
-    uint256 public constant MIN_FAIRSCORE = 350;
-    uint256 public constant VOUCH_MIN_FAIRSCORE = 500;
+    uint256 public constant MIN_FAIRSCORE = 200;
+    uint256 public constant VOUCH_MIN_FAIRSCORE = 400;
 
     // ============ State Variables ============
     
     address public fairScaleSigner;
-    IERC20 public lendingToken;       // USDC
-    IERC20 public collateralToken;    // WETH
+    IERC20 public lendingToken;
+    IERC20 public collateralToken;
     address public priceOracle;
     
     uint256 public loanCounter;
@@ -291,7 +284,6 @@ contract FairLendCore is ReentrancyGuard, Ownable {
         lendingToken.safeTransferFrom(msg.sender, address(this), totalOwed);
         collateralToken.safeTransfer(msg.sender, loan.collateral);
         
-        // Distribute interest
         uint256 insuranceCut = (interest * INSURANCE_FEE_BPS) / BASIS_POINTS;
         insuranceFund += insuranceCut;
         
@@ -330,14 +322,15 @@ contract FairLendCore is ReentrancyGuard, Ownable {
         bool isUndercollateralized = getHealthFactor(borrower) < LIQUIDATION_THRESHOLD;
         require(isOverdue || isUndercollateralized, "Loan is healthy");
         
+        uint256 keeperReward = (loan.collateral * KEEPER_REWARD_BPS) / BASIS_POINTS;
         uint256 totalOwed = loan.principal + calculateInterest(borrower);
         uint256 collateralValue = getCollateralValue(loan.collateral);
         
-        uint256 keeperReward = (loan.collateral * KEEPER_REWARD_BPS) / BASIS_POINTS;
-        uint256 recovered = collateralValue > totalOwed ? totalOwed : collateralValue;
-        uint256 shortfall = totalOwed > recovered ? totalOwed - recovered : 0;
+        uint256 shortfall = 0;
+        if (collateralValue < totalOwed) {
+            shortfall = totalOwed - collateralValue;
+        }
         
-        // Loss waterfall: Vouchers -> Insurance -> Junior Tranche
         if (shortfall > 0) {
             shortfall = _slashVouchers(borrower, shortfall);
         }
@@ -396,7 +389,6 @@ contract FairLendCore is ReentrancyGuard, Ownable {
     }
     
     function getCollateralValue(uint256 amount) public pure returns (uint256) {
-        // Simplified: 1 ETH = 2000 USDC. Use Chainlink in production.
         return (amount * 2000 * 1e6) / 1e18;
     }
     
